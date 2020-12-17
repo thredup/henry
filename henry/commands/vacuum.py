@@ -3,6 +3,9 @@ from typing import cast, Optional
 from henry.modules import fetcher
 from henry.modules import spinner
 
+from henry.modules.exceptions import NotFoundError
+from looker_sdk.error import SDKError
+
 
 class Vacuum(fetcher.Fetcher):
     @classmethod
@@ -22,15 +25,23 @@ class Vacuum(fetcher.Fetcher):
         result: fetcher.TResult = []
         for m in all_models:
             assert isinstance(m.name, str)
-            result.append(
-                {
-                    "Model": m.name,
-                    "Unused Explores": "\n".join(
-                        sorted(self.get_unused_explores(m.name))
-                    ),
-                    "Model Query Count": used_models.get(m.name, 0),
-                }
-            )
+            try:
+                print("\bModel %s"%m.name)
+                result.append(
+                    {
+                        "Model": m.name,
+                        "Unused Explores": "\n".join(
+                            sorted(self.get_unused_explores(m.name))
+                        ),
+                        "Model Query Count": used_models.get(m.name, 0),
+                    }
+                )
+            except NotFoundError as err:
+                print(cast(str, err))
+                pass
+            except SDKError as err:
+                print(cast(str, err))
+                pass
         return result
 
     @spinner.Spinner()
@@ -43,14 +54,25 @@ class Vacuum(fetcher.Fetcher):
         for e in explores:
             assert isinstance(e.name, str)
             assert isinstance(e.model_name, str)
-            field_stats = self.get_explore_field_stats(e)
-            join_stats = self.get_explore_join_stats(explore=e, field_stats=field_stats)
-            result.append(
-                {
-                    "Model": e.model_name,
-                    "Explore": e.name,
-                    "Unused Joins": "\n".join(sorted(self._filter(join_stats).keys())),
-                    "Unused Fields": "\n".join(sorted(self._filter(field_stats))),
-                }
-            )
+            try:
+                print("\bModel %s explore %s"%(e.model_name, e.name))
+
+                field_stats = self.get_explore_field_stats(e)
+                join_stats = self.get_explore_join_stats(explore=e, field_stats=field_stats)
+                result.append(
+                    {
+                        "Model": e.model_name,
+                        "Explore": e.name,
+                        "Unused Joins": "\n".join(sorted(self._filter(join_stats).keys())),
+                        "Unused Fields": "\n".join(sorted(self._filter(field_stats))),
+                    }
+                )
+            except NotFoundError as err:
+                print(cast(str, err))
+                print("------------------------------------")
+                pass
+            except SDKError as err:
+                print(cast(str, err))
+                print("------------------------------------")
+                pass
         return result

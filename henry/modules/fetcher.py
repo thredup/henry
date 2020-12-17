@@ -408,7 +408,7 @@ class Input(NamedTuple):
     project: Optional[str] = None
     model: Optional[str] = None
     explore: Optional[str] = None
-    timeframe: Optional[int] = 90
+    timeframe: Optional[int] = 160
     min_queries: Optional[int] = 0
     sortkey: Optional[Tuple[str, str]] = None
     limit: Optional[Sequence[int]] = None

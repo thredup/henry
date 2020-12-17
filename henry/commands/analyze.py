@@ -2,7 +2,8 @@ from typing import cast, Optional
 
 from henry.modules import spinner
 from henry.modules import fetcher
-
+from henry.modules.exceptions import NotFoundError
+from looker_sdk.error import SDKError
 
 class Analyze(fetcher.Fetcher):
     @classmethod
@@ -24,6 +25,7 @@ class Analyze(fetcher.Fetcher):
         projects = self.get_projects(project_id=id)
         result = []
         for p in projects:
+            print("\bModel %s"%p.name)
             assert isinstance(p.name, str)
             assert isinstance(p.pull_request_mode, str)
             assert isinstance(p.validation_required, bool)
@@ -56,18 +58,26 @@ class Analyze(fetcher.Fetcher):
         all_models = self.get_models(project=project, model=model)
         result: fetcher.TResult = []
         for m in all_models:
-            assert isinstance(m.name, str)
-            assert isinstance(m.project_name, str)
-            assert isinstance(m.explores, list)
-            result.append(
-                {
+            print("\bModel: %s project: %s"%(m.name, m.project_name))
+            try:
+                assert isinstance(m.name, str)
+                assert isinstance(m.project_name, str)
+                assert isinstance(m.explores, list)
+                mm = {
                     "Project": m.project_name,
                     "Model": m.name,
                     "# Explores": len(m.explores),
                     "# Unused Explores": len(self.get_unused_explores(model=m.name)),
                     "Query Count": self.get_used_models().get(m.name) or 0,
                 }
-            )
+
+                result.append(mm)
+            except NotFoundError as err:
+                print(cast(str, err))
+                pass
+            except SDKError as err:
+                print(cast(str, err))
+                pass
         return result
 
     @spinner.Spinner()

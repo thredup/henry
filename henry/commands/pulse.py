@@ -4,6 +4,8 @@ from typing import Sequence, cast
 
 from looker_sdk import models
 
+from looker_sdk.error import SDKError
+
 from henry.modules import exceptions, fetcher, spinner
 
 
@@ -40,10 +42,23 @@ class Pulse(fetcher.Fetcher):
         for connection in db_connections:
             assert connection.dialect
             assert isinstance(connection.name, str)
-            resp = self.sdk.test_connection(
-                connection.name,
-                models.DelimSequence(connection.dialect.connection_tests),
-            )
+
+            try:
+                print("\bTest connection %s"%connection.name)
+                resp = self.sdk.test_connection(
+                    connection.name,
+                    models.DelimSequence(connection.dialect.connection_tests),
+                )
+            except SDKError as err:
+                formatted_results.append(
+                    {
+                        "Connection": connection.name,
+                        "Status": cast(str, err),
+                        "Query Count": -1,
+                    }
+                )
+                continue
+
             results = list(filter(lambda r: r.status == "error", resp))
             errors = [f"- {fill(cast(str, e.message), width=100)}" for e in results]
 

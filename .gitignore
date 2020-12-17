@@ -1,0 +1,8 @@
+# IDE related
+.idea/
+
+# Python related
+__pycache__
+
+# Coverage
+.coverage*
